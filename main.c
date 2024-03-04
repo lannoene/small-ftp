@@ -76,7 +76,7 @@ void SendFileTo(const char *ip, const uint16_t port, const char *filename);
 int ListenForNetMsgs(char *buf);
 bool ConnectToPeer(const char *ip, uint16_t port);
 void SendNetMsg(enum packet_type type, void *data, uint32_t size);
-void ReceiveFile();
+bool ReceiveFile(char *fileBuffer, int fileSize);
 void SendFile(const char *filename);
 
 bool sendFile = false;
@@ -148,35 +148,23 @@ int main(int argc, char* argv[]) {
 							printf("Unkown data type: %d", type);
 							break;
 						case FILE_HEADER:
+							// get relevant data out of packet
 							int fileSize = ((struct FileInfo*)(packData))->size;
 							char filename[30];
 							strncpy(filename, ((struct FileInfo*)(packData))->filename, 30);
 							printf("Downloading file:\nSize: %d\nName: %s\n", fileSize, filename);
+							// tell peer that we got their request and we're okay with it
 							SendNetMsg(FILE_REQ_ACK, "", 0);
 							char *fileBuffer = malloc(fileSize);
-							int receivedBytes = 0;
-							int receivedFileData = -NETHEADER_SIZE; // skip netheader
-							while (receivedFileData < fileSize) {
-								char newBuffer[STATIC_BUF_SIZE];
-								int bytesRead;
-								if ((bytesRead = ListenForNetMsgs(newBuffer))) { // if we're in debt to the packet header, we're gonna have to pay it off with our received data
-									if (receivedFileData < 0) {
-										int diffHeaderSize = receivedFileData;
-										memcpy(fileBuffer + CLAMP(0, receivedFileData, STATIC_BUF_SIZE), newBuffer + CLAMP(0, -receivedFileData, STATIC_BUF_SIZE), CLAMP(0, bytesRead - NETHEADER_SIZE, STATIC_BUF_SIZE));
-										receivedBytes += bytesRead;
-										receivedFileData += bytesRead;
-									} else { // otherwise, the received stuff is just raw data :)
-										memcpy(fileBuffer + receivedFileData, newBuffer, bytesRead);
-										receivedBytes += bytesRead;
-										receivedFileData += bytesRead;
-									}
-								}
-								
+							// receive file
+							if (ReceiveFile(fileBuffer, fileSize)) { // if file receive did not time out, save it
+								puts("Finished receiving file :)");
+								FILE *file = fopen(filename, "wb");
+								fwrite(fileBuffer, fileSize, 1, file);
+								fclose(file);
+							} else {
+								puts("An error has occured! Could not receive file :(");
 							}
-							puts("Finished receiving file :)");
-							FILE *file = fopen(filename, "wb");
-							fwrite(fileBuffer, fileSize, 1, file);
-							fclose(file);
 							free(fileBuffer);
 							break;
 					}
@@ -304,7 +292,7 @@ int ListenForNetMsgs(char *buf) {
 		// no data to be read. do nothing
 	} else if ((pollRet > 0) && (host.peer.poll.revents & POLLIN)) {
 		int bytesRead = recv(host.peer.sock, (void*)buf, STATIC_BUF_SIZE, 0);
-		printf("Read %d bytes\n", bytesRead);
+		//printf("Read %d bytes\n", bytesRead);
 		host.peer.poll.revents = 0;
 		if (bytesRead <= 0) {
 			puts("Peer has closed the connection!");
@@ -376,4 +364,35 @@ void SendFile(const char *filename) {
 	puts("Finished sending file.");
 	
 	free(fileData);
+}
+
+bool ReceiveFile(char *fileBuffer, int fileSize) {
+	int receivedBytes = 0;
+	int receivedFileData = -NETHEADER_SIZE; // skip netheader
+	
+	int lastGivenProgress = -1;
+	while (receivedFileData < fileSize) {
+		char newBuffer[STATIC_BUF_SIZE];
+		int bytesRead;
+		if ((bytesRead = ListenForNetMsgs(newBuffer))) { // if we're in debt to the packet header, we're gonna have to pay it off with our received data
+			if (receivedFileData < 0) {
+				int diffHeaderSize = receivedFileData;
+				memcpy(fileBuffer + CLAMP(0, receivedFileData, STATIC_BUF_SIZE), newBuffer + CLAMP(0, -receivedFileData, STATIC_BUF_SIZE), CLAMP(0, bytesRead - NETHEADER_SIZE, STATIC_BUF_SIZE));
+				receivedBytes += bytesRead;
+				receivedFileData += bytesRead;
+			} else { // otherwise, the received stuff is just raw data :)
+				memcpy(fileBuffer + receivedFileData, newBuffer, bytesRead);
+				receivedBytes += bytesRead;
+				receivedFileData += bytesRead;
+			}
+			float progress = CLAMP(0, ((float)receivedFileData/fileSize)*100, fileSize);
+			if ((int)progress % (100/4) == 0 && (int)progress != lastGivenProgress) {
+				printf("%.2f%% done\n", progress);
+				lastGivenProgress = (int)progress;
+			}
+		}
+		
+	}
+	
+	return true;
 }

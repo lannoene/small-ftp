@@ -5,6 +5,7 @@
 #include <unistd.h> // lets us use close function
 #include <stdlib.h>
 #include <math.h>
+#include <netdb.h>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -214,9 +215,23 @@ bool HostInit(const uint16_t port) {
 		if (bind(host.sock, &addr, sizeof(addr)) != 0)
 			return false;
 	}
-	
-	printf("Port is %hu\n", ntohs(server_address.sin_port));
-
+	// get user address
+	char hostName[100];
+	gethostname(hostName, 100);
+	char myIp[16];
+	struct hostent *he = gethostbyname(hostName);
+	if (he != NULL) {
+		struct in_addr **addr_list;
+		
+		addr_list = (struct in_addr **) he->h_addr_list;
+		
+		strcpy(myIp, inet_ntoa(*addr_list[0]));
+		
+		printf("Your ip is %s Port is %hu\n", myIp, ntohs(server_address.sin_port));
+	} else {
+		puts("Could not get host ip address, sorry!");
+		printf("Your port is %hu\n", ntohs(server_address.sin_port));
+	}
 	listen(host.sock, 1); // listen for conns on server sock
 
 	host.poll.fd = host.sock;

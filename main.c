@@ -73,7 +73,7 @@ int AcceptPeer(void);
 void AddPeer(int sock);
 void ResetPeerData(struct Client *peer);
 void SendFileTo(const char *ip, const uint16_t port, const char *filename);
-int ListenForNetMsgs(const char *buf);
+int ListenForNetMsgs(char *buf);
 bool ConnectToPeer(const char *ip, uint16_t port);
 void SendNetMsg(enum packet_type type, void *data, uint32_t size);
 void ReceiveFile();
@@ -196,8 +196,8 @@ bool HostInit(const uint16_t port) {
 	struct sockaddr_in server_address;
 	
 	server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(port);
+	server_address.sin_addr.s_addr = INADDR_ANY;
+	server_address.sin_port = htons(port);
 
 	host.sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -291,7 +291,7 @@ void AddPeer(int sock) {
 	host.peer.poll.fd = sock;
 }
 
-int ListenForNetMsgs(const char *buf) {
+int ListenForNetMsgs(char *buf) {
 	int pollRet = poll(&host.peer.poll, 1, 0); // get current sock poll info
 	//puts("polling");
 	

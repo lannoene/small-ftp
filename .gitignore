@@ -1,0 +1,6 @@
+*
+!source/
+!source/*
+!*.rc
+!.gitignore
+!makefile

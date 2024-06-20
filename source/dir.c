@@ -185,9 +185,9 @@ FILE *fopen_mkdir(char *path, char *mode) {
 	pthread_mutex_lock(&mkdirMutex);
 	char *curD = getcwd(NULL, 0);
     char *sep = strrchr(path, '\\');
-    if(sep) { 
+    if (sep) { 
         char *path0 = strdup(path);
-        path0[ sep - path ] = 0;
+        path0[sep - path] = 0;
         rek_mkdir(path0);
         free(path0);
     }
@@ -197,6 +197,8 @@ FILE *fopen_mkdir(char *path, char *mode) {
     return ff;
 }
 
+#include <windows.h>
+
 void WriteFileT(char *filename, char *data, uint64_t *size) {
 	++writeFileOperations;
 	
@@ -205,6 +207,7 @@ void WriteFileT(char *filename, char *data, uint64_t *size) {
 	fwrite(data, *size, 1, writeFile);
 	
 	fclose(writeFile);
+	//ShellExecute(NULL, "open", filename, NULL, NULL, SW_SHOWNORMAL);
 	
 	--writeFileOperations;
 	// todo: free size. i don't feel like breaking anything right now though...

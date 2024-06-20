@@ -4,3 +4,7 @@
 !*.rc
 !.gitignore
 !makefile
+!romfs/
+!romfs/*
+!romfs/fonts/
+!romfs/fonts/*

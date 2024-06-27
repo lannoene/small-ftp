@@ -9,3 +9,5 @@
 !romfs/fonts/
 !romfs/fonts/*
 !utf8.xml
+!romfs/icons/
+!romfs/icons/*

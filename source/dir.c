@@ -333,15 +333,18 @@ enum file_type GetFileExtensionType(const char *name) {
 
 struct DirectoryStats GetDirectoryStats(const char *path) {
 	char *oldCwd = getcwd(NULL, 0);
-	chdir(path); // we need to chdir for stat64 to work correctly
+	if (chdir(path) != 0) {
+		goto freeCwd;
+	}
 	DIR *dr = opendir(".");
 	if (dr == NULL) {
-		printf("Could not open directory. CWD: %s\n", getcwd(NULL, 0)); // yes this causes a memory leak, but it's not that big. also you're fricked anyways.
+		goto closeDir;
 	}
 	
 	struct dirent *de;
 	
 	struct DirectoryStats d = {0};
+	
 	while ((de = readdir(dr)) != NULL) {
 		if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
 			continue;
@@ -350,6 +353,12 @@ struct DirectoryStats GetDirectoryStats(const char *path) {
 		
 		if (S_ISDIR(st.st_mode)) {
 			++d.numFolders;
+			/*struct DirectoryStats nd = GetDirectoryStats(de->d_name); // too slow
+			d.numFiles += nd.numFiles;
+			d.numFolders += nd.numFolders;
+			d.totalSize += nd.totalSize;
+			d.numElems += nd.numElems;*/
+			
 		} else { // is file
 			++d.numFiles;
 			d.totalSize += st.st_size;
@@ -357,8 +366,10 @@ struct DirectoryStats GetDirectoryStats(const char *path) {
 	}
 	
 	d.numElems = d.numFiles + d.numFolders;
-	
+
+closeDir:
 	closedir(dr);
+freeCwd:
 	chdir(oldCwd);
 	free(oldCwd);
 	return d;

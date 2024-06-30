@@ -430,8 +430,6 @@ int main(int argc, char* argv[]) {
 	chdir(".");
 	
 	GetDirectoryElementIcon("romfs");
-	
-	puts("Enter mode: (c client, h host)");
 	// init titlescreen menu
 	Menu_t m_title;
 	MenuInit(&m_title);
@@ -451,8 +449,6 @@ int main(int argc, char* argv[]) {
 		Wrp_FinishDrawing();
 	}
 	MenuFree(&m_title);
-	
-	puts("To send a file, press s. To send a directory, press d.");
 	
 	MenuInit(&mMain);
 	MenuAddButton(&mMain, "sendDir", 50, 50, 100, 100, "Send Directory");

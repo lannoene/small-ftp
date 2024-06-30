@@ -74,12 +74,13 @@ char *OpenDirDialogue(int flags) {
 	IFileOpenDialog *pfd;
 	IShellItem *psiResult;
 	PWSTR pszFilePath = NULL;
+	char *ret = NULL;
 	if (SUCCEEDED(CoCreateInstance(&CLSID_FileOpenDialog, NULL, CLSCTX_ALL, &IID_IFileOpenDialog, (void**)&pfd))) {
 		pfd->lpVtbl->SetOptions(pfd, FOS_PICKFOLDERS);
 		pfd->lpVtbl->Show(pfd, NULL);
 		if (SUCCEEDED(pfd->lpVtbl->GetResult(pfd, &psiResult))){
 			if (SUCCEEDED(psiResult->lpVtbl->GetDisplayName(psiResult, SIGDN_FILESYSPATH, &pszFilePath))) {
-				char *ret = malloc(1);
+				ret = malloc(1);
 				int i = 0;
 				WCHAR *p = pszFilePath;
 				while (*p) {
@@ -89,7 +90,6 @@ char *OpenDirDialogue(int flags) {
 				}
 				ret[i] = '\0';
 				CoTaskMemFree(pszFilePath);
-				return ret;
 			} else {
 				puts("nope 2");
 			}
@@ -99,7 +99,7 @@ char *OpenDirDialogue(int flags) {
 	} else {
 		printf("nope 3: %ld\n", GetLastError());
 	}
-	return NULL;
+	return ret;
 }
 
 void GetDirectoryElementIcon(const char *path) {
@@ -110,9 +110,9 @@ void GetDirectoryElementIcon(const char *path) {
 		GetIconInfo(sfi.hIcon, &iInfo);
 		char buffer[32];
 		GetBitmapBits(iInfo.hbmColor, 32, buffer);
-		FILE *fp = fopen("asea.bmp", "wb");
-		fwrite(buffer, 256, 1, fp);
-		fclose(fp);
+		//FILE *fp = fopen("asea.bmp", "wb");
+		//fwrite(buffer, 256, 1, fp);
+		//fclose(fp);
 		DestroyIcon(sfi.hIcon);
 	} else {
 		puts("Could not");
@@ -153,7 +153,6 @@ Menu_t mMain;
 
 void SelectClient() {
 	SetHost(false);
-	puts("You are a client. Press 'j' to join.");
 	puts("Searching for local servers... (this will not ping localhost)");
 	unsigned char ipOp = GetNIpNum() >> 16;
 	unsigned char ipLast = GetNIpNum() >> 24;
@@ -169,7 +168,7 @@ void SelectClient() {
 
 void Connect() {
 	if (!IsHost() && !IsConnected()) {
-		char *sendToIp = CreateDialoguePopup("Input IP and Port", "", 0);
+		char *sendToIp = CreateDialoguePopup("Input IP and Port (ip:port)", "", 0);
 		uint16_t sendToPort;
 		if (strcmp(sendToIp, "localhost") != 0) { // if ip is not localhost
 			// get port
@@ -214,10 +213,9 @@ void CL_SendDir() {
 }
 
 void CL_SendFile() {
-	char sendFilename[50];
-	puts("Enter filename to send:");
-	scanf("%s", sendFilename);
+	char *sendFilename = CreateFileDialoguePopup();
 	SendFile(sendFilename, true);
+	free(sendFilename);
 	puts("Finished sending file");
 }
 

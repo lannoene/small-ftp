@@ -474,3 +474,35 @@ char *CreateDialoguePopup(const char *title, const char *msg, int numButtons, ..
 	}
 	return strdup(contents);
 }
+
+#include <SDL_syswm.h>
+
+HWND GetHwnd() {
+	SDL_SysWMinfo wmInfo;
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(Wrp_GetWindow(), &wmInfo);
+	HWND win = wmInfo.info.win.window;
+	if (win == NULL) {
+		puts("Win is null!");
+	}
+	return win;
+}
+
+char *CreateFileDialoguePopup(void) {
+	OPENFILENAME ofn;
+	memset(&ofn, 0, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = GetHwnd();
+	ofn.hInstance = GetModuleHandle(NULL);
+	ofn.nMaxFile = MAX_PATH;
+	ofn.lpstrTitle = L"Please Select A File To Open";
+	ofn.Flags = OFN_NONETWORKBUTTON | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	char *f = malloc(500);
+	f[0] = '\0';
+	ofn.lpstrFile = f;
+	
+	if (!GetOpenFileName(&ofn)) {
+		return NULL;
+	}
+	return ofn.lpstrFile;
+}

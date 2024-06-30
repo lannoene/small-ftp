@@ -102,3 +102,4 @@ void ElementSetHoverBar(MenuElem_t *e, const char *text);
 const char *EvalStringFormat(const char *fmt, ...);
 // special funcs
 char *CreateDialoguePopup(const char *title, const char *msg, int numButtons, ...);
+char *CreateFileDialoguePopup(void);
